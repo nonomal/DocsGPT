@@ -1,8 +1,10 @@
 import { useMediaQuery } from './hooks';
 import DocsGPT3 from './assets/cute_docsgpt3.svg';
+import { useNavigate } from 'react-router-dom';
 
 export default function Hero({ className = '' }: { className?: string }) {
   // const isMobile = window.innerWidth <= 768;
+  const navigate = useNavigate();
   const { isMobile } = useMediaQuery();
   return (
     <div className={`mt-14 ${isMobile ? 'mb-2' : 'mb-12'}flex flex-col `}>
