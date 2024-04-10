@@ -30,6 +30,6 @@ sentence-transformers
 tiktoken==0.5.2
 torch==2.1.2
 tqdm==4.66.1
-transformers==4.36.2
+transformers==4.38.0
 unstructured==0.12.2
 Werkzeug==3.0.1
