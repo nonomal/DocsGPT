@@ -1,15 +1,14 @@
 import { forwardRef, useState } from 'react';
 import Avatar from '../components/Avatar';
+import CoppyButton from '../components/CopyButton';
 import remarkGfm from 'remark-gfm';
 import { FEEDBACK, MESSAGE_TYPE } from './conversationModels';
 import classes from './ConversationBubble.module.css';
 import Alert from './../assets/alert.svg';
 import Like from './../assets/like.svg?react';
 import Dislike from './../assets/dislike.svg?react';
-import Copy from './../assets/copy.svg?react';
-import CheckMark from './../assets/checkmark.svg?react';
+
 import ReactMarkdown from 'react-markdown';
-import copy from 'copy-to-clipboard';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import DocsGPT3 from '../assets/cute_docsgpt3.svg';
@@ -23,36 +22,27 @@ const ConversationBubble = forwardRef<
     className?: string;
     feedback?: FEEDBACK;
     handleFeedback?: (feedback: FEEDBACK) => void;
-    sources?: { title: string; text: string }[];
+    sources?: { title: string; text: string; source: string }[];
+    retryBtn?: React.ReactElement;
   }
 >(function ConversationBubble(
-  { message, type, className, feedback, handleFeedback, sources },
+  { message, type, className, feedback, handleFeedback, sources, retryBtn },
   ref,
 ) {
   const [openSource, setOpenSource] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
 
-  const handleCopyClick = (text: string) => {
-    copy(text);
-    setCopied(true);
-    // Reset copied to false after a few seconds
-    setTimeout(() => {
-      setCopied(false);
-    }, 3000);
-  };
-  const [isCopyHovered, setIsCopyHovered] = useState(false);
   const [isLikeHovered, setIsLikeHovered] = useState(false);
   const [isDislikeHovered, setIsDislikeHovered] = useState(false);
   const [isLikeClicked, setIsLikeClicked] = useState(false);
   const [isDislikeClicked, setIsDislikeClicked] = useState(false);
 
   let bubble;
-  
+
   if (type === 'QUESTION') {
     bubble = (
       <div ref={ref} className={`flex flex-row-reverse self-end ${className}`}>
         <Avatar className="mt-2 text-2xl" avatar="🧑‍💻"></Avatar>
-        <div className="mr-2 ml-10 flex items-center rounded-3xl bg-purple-30 p-3.5 text-white">
+        <div className="ml-10 mr-2 flex items-center rounded-3xl bg-purple-30 p-3.5 text-white">
           <ReactMarkdown className="whitespace-pre-wrap break-normal leading-normal">
             {message}
           </ReactMarkdown>
@@ -80,12 +70,17 @@ const ConversationBubble = forwardRef<
           <div
             className={`ml-2 mr-5 flex max-w-[90vw] rounded-3xl bg-gray-1000 p-3.5 dark:bg-gun-metal md:max-w-[70vw] lg:max-w-[50vw] ${
               type === 'ERROR'
-                ? 'flex-row items-center rounded-full border border-transparent bg-[#FFE7E7] p-2 py-5 text-sm font-normal text-red-3000  dark:border-red-2000 dark:text-white'
+                ? 'relative flex-row items-center rounded-full border border-transparent bg-[#FFE7E7] p-2 py-5 text-sm font-normal text-red-3000  dark:border-red-2000 dark:text-white'
                 : 'flex-col rounded-3xl'
             }`}
           >
             {type === 'ERROR' && (
-              <img src={Alert} alt="alert" className="mr-2 inline" />
+              <>
+                <img src={Alert} alt="alert" className="mr-2 inline" />
+                <div className="absolute -right-32 top-1/2 -translate-y-1/2">
+                  {retryBtn}
+                </div>
+              </>
             )}
             <ReactMarkdown
               className="whitespace-pre-wrap break-normal leading-normal"
@@ -95,14 +90,24 @@ const ConversationBubble = forwardRef<
                   const match = /language-(\w+)/.exec(className || '');
 
                   return !inline && match ? (
-                    <SyntaxHighlighter
-                      PreTag="div"
-                      language={match[1]}
-                      {...props}
-                      style={vscDarkPlus}
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
+                    <div className="group relative">
+                      <SyntaxHighlighter
+                        PreTag="div"
+                        language={match[1]}
+                        {...props}
+                        style={vscDarkPlus}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                      <div
+                        className={`absolute right-3 top-3 lg:invisible 
+                        ${type !== 'ERROR' ? 'group-hover:lg:visible' : ''} `}
+                      >
+                        <CoppyButton
+                          text={String(children).replace(/\n$/, '')}
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <code className={className ? className : ''} {...props}>
                       {children}
@@ -172,13 +177,19 @@ const ConversationBubble = forwardRef<
                     {sources?.map((source, index) => (
                       <div
                         key={index}
-                        className={`max-w-xs sm:max-w-sm md:max-w-md cursor-pointer rounded-[28px] py-1 px-4 ${
+                        className={`max-w-xs cursor-pointer rounded-[28px] px-4 py-1 sm:max-w-sm md:max-w-md ${
                           openSource === index
                             ? 'bg-[#007DFF]'
                             : 'bg-[#D7EBFD] hover:bg-[#BFE1FF]'
                         }`}
                         onClick={() =>
-                          setOpenSource(openSource === index ? null : index)
+                          source.source !== 'local'
+                            ? window.open(
+                                source.source,
+                                '_blank',
+                                'noopener, noreferrer',
+                              )
+                            : setOpenSource(openSource === index ? null : index)
                         }
                       >
                         <p
@@ -203,31 +214,7 @@ const ConversationBubble = forwardRef<
             ${type !== 'ERROR' ? 'group-hover:lg:visible' : ''}`}
             >
               <div className="absolute left-2 top-4">
-                <div
-                  className={`flex items-center justify-center rounded-full p-2 
-                ${
-                  isCopyHovered
-                    ? 'bg-[#EEEEEE] dark:bg-purple-taupe'
-                    : 'bg-[#ffffff] dark:bg-transparent'
-                }`}
-                >
-                  {copied ? (
-                    <CheckMark
-                      className="cursor-pointer stroke-green-2000"
-                      onMouseEnter={() => setIsCopyHovered(true)}
-                      onMouseLeave={() => setIsCopyHovered(false)}
-                    />
-                  ) : (
-                    <Copy
-                      className={`cursor-pointer fill-none`}
-                      onClick={() => {
-                        handleCopyClick(message);
-                      }}
-                      onMouseEnter={() => setIsCopyHovered(true)}
-                      onMouseLeave={() => setIsCopyHovered(false)}
-                    ></Copy>
-                  )}
-                </div>
+                <CoppyButton text={message} />
               </div>
             </div>
             <div

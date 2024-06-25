@@ -20,12 +20,18 @@ function Dropdown({
   options:
     | string[]
     | { name: string; id: string; type: string }[]
-    | { label: string; value: string }[];
-  selectedValue: string | { label: string; value: string } | null;
+    | { label: string; value: string }[]
+    | { value: number; description: string }[];
+  selectedValue:
+    | string
+    | { label: string; value: string }
+    | { value: number; description: string }
+    | null;
   onSelect:
     | ((value: string) => void)
     | ((value: { name: string; id: string; type: string }) => void)
-    | ((value: { label: string; value: string }) => void);
+    | ((value: { label: string; value: string }) => void)
+    | ((value: { value: number; description: string }) => void);
   size?: string;
   rounded?: 'xl' | '3xl';
   border?: 'border' | 'border-2';
@@ -36,9 +42,26 @@ function Dropdown({
   onDelete?: (value: string) => void;
   placeholder?: string;
 }) {
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = React.useState(false);
   const borderRadius = rounded === 'xl' ? 'rounded-xl' : 'rounded-3xl';
   const borderTopRadius = rounded === 'xl' ? 'rounded-t-xl' : 'rounded-t-3xl';
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  };
+
+  React.useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   return (
     <div
       className={[
@@ -47,6 +70,7 @@ function Dropdown({
           : 'relative align-middle',
         size,
       ].join(' ')}
+      ref={dropdownRef}
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -64,8 +88,14 @@ function Dropdown({
               !selectedValue && 'text-silver dark:text-gray-400'
             }`}
           >
-            {selectedValue
+            {selectedValue && 'label' in selectedValue
               ? selectedValue.label
+              : selectedValue && 'description' in selectedValue
+              ? `${
+                  selectedValue.value < 1e9
+                    ? selectedValue.value + ` (${selectedValue.description})`
+                    : selectedValue.description
+                }`
               : placeholder
               ? placeholder
               : 'From URL'}
@@ -99,7 +129,13 @@ function Dropdown({
                   ? option
                   : option.name
                   ? option.name
-                  : option.label}
+                  : option.label
+                  ? option.label
+                  : `${
+                      option.value < 1e9
+                        ? option.value + ` (${option.description})`
+                        : option.description
+                    }`}
               </span>
               {showEdit && onEdit && (
                 <img

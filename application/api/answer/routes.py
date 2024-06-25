@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from flask import Blueprint, request, Response
 import json
 import datetime
@@ -9,12 +10,10 @@ import traceback
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
-
 from application.core.settings import settings
 from application.llm.llm_creator import LLMCreator
 from application.retriever.retriever_creator import RetrieverCreator
 from application.error import bad_request
-
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +74,12 @@ def run_async_chain(chain, question, chat_history):
 
 def get_data_from_api_key(api_key):
     data = api_key_collection.find_one({"key": api_key})
-    if data is None:
-        return bad_request(401, "Invalid API key")
-    return data
     
+    # # Raise custom exception if the API key is not found
+    if data is None:
+        raise Exception("Invalid API Key, please generate new key", 401)
+    return data
+
 
 def get_vectorstore(data):
     if "active_docs" in data:
@@ -94,6 +95,7 @@ def get_vectorstore(data):
         vectorstore = ""
     vectorstore = os.path.join("application", vectorstore)
     return vectorstore
+
 
 def is_azure_configured():
     return (
@@ -127,10 +129,10 @@ def save_conversation(conversation_id, question, response, source_log_docs, llm)
                 "content": "Summarise following conversation in no more than 3 "
                 "words, respond ONLY with the summary, use the same "
                 "language as the system \n\nUser: "
-                + question
-                + "\n\n"
-                + "AI: "
-                + response,
+                +question
+                +"\n\n"
+                +"AI: "
+                +response,
             },
             {
                 "role": "user",
@@ -172,33 +174,40 @@ def get_prompt(prompt_id):
 
 def complete_stream(question, retriever, conversation_id, user_api_key):
 
-    response_full = ""
-    source_log_docs = []
-    answer = retriever.gen()
-    for line in answer:
-        if "answer" in line:
-            response_full += str(line["answer"])
-            data = json.dumps(line)
-            yield f"data: {data}\n\n"
-        elif "source" in line:
-            source_log_docs.append(line["source"])
+    try:
+        response_full = ""
+        source_log_docs = []
+        answer = retriever.gen()
+        for line in answer:
+            if "answer" in line:
+                response_full += str(line["answer"])
+                data = json.dumps(line)
+                yield f"data: {data}\n\n"
+            elif "source" in line:
+                source_log_docs.append(line["source"])
 
-    llm = LLMCreator.create_llm(
-        settings.LLM_NAME, api_key=settings.API_KEY, user_api_key=user_api_key
-    )
-    conversation_id = save_conversation(
-        conversation_id, question, response_full, source_log_docs, llm
-    )
-
-    # send data.type = "end" to indicate that the stream has ended as json
-    data = json.dumps({"type": "id", "id": str(conversation_id)})
-    yield f"data: {data}\n\n"
-    data = json.dumps({"type": "end"})
-    yield f"data: {data}\n\n"
-
+        llm = LLMCreator.create_llm(
+            settings.LLM_NAME, api_key=settings.API_KEY, user_api_key=user_api_key
+            )
+        conversation_id = save_conversation(
+            conversation_id, question, response_full, source_log_docs, llm
+        )
+        
+        # send data.type = "end" to indicate that the stream has ended as json
+        data = json.dumps({"type": "id", "id": str(conversation_id)})
+        yield f"data: {data}\n\n"
+        data = json.dumps({"type": "end"})
+        yield f"data: {data}\n\n"
+    except Exception as e:
+        print("\033[91merr", str(e), file=sys.stderr)
+        data = json.dumps({"type": "error","error":"Please try again later. We apologize for any inconvenience.",
+          "error_exception": str(e)})
+        yield f"data: {data}\n\n"
+        return 
 
 @answer.route("/stream", methods=["POST"])
 def stream():
+   try:
     data = request.get_json()
     # get parameter from url question
     question = data["question"]
@@ -221,7 +230,10 @@ def stream():
         chunks = int(data["chunks"])
     else:
         chunks = 2
-
+    if "token_limit" in data:
+        token_limit = data["token_limit"]
+    else:
+        token_limit = settings.DEFAULT_MAX_HISTORY
 
     # check if active_docs or api_key is set
 
@@ -255,6 +267,7 @@ def stream():
         chat_history=history,
         prompt=prompt,
         chunks=chunks,
+        token_limit=token_limit,
         gpt_model=gpt_model,
         user_api_key=user_api_key,
     )
@@ -268,7 +281,30 @@ def stream():
         ),
         mimetype="text/event-stream",
     )
-
+    
+   except ValueError:
+       message = "Malformed request body"
+       print("\033[91merr", str(message), file=sys.stderr)
+       return Response(
+        error_stream_generate(message),
+        status=400,
+        mimetype="text/event-stream",
+    )
+   except Exception as e:
+        print("\033[91merr", str(e), file=sys.stderr)
+        message = e.args[0]
+        status_code = 400
+        # # Custom exceptions with two arguments, index 1 as status code
+        if(len(e.args) >= 2):
+            status_code = e.args[1]
+        return Response(
+        error_stream_generate(message),
+        status=status_code,
+        mimetype="text/event-stream",
+    )
+def error_stream_generate(err_response):
+            data = json.dumps({"type": "error", "error":err_response})
+            yield f"data: {data}\n\n"
 
 @answer.route("/api/answer", methods=["POST"])
 def api_answer():
@@ -291,6 +327,10 @@ def api_answer():
         chunks = int(data["chunks"])
     else:
         chunks = 2
+    if "token_limit" in data:
+        token_limit = data["token_limit"]
+    else:
+        token_limit = settings.DEFAULT_MAX_HISTORY
 
     # use try and except  to check for exception
     try:
@@ -302,7 +342,7 @@ def api_answer():
             source = {"active_docs": data_key["source"]}
             user_api_key = data["api_key"]
         else:
-            source = {data}
+            source = data
             user_api_key = None
 
         if (
@@ -314,7 +354,7 @@ def api_answer():
             retriever_name = source["active_docs"]
 
         prompt = get_prompt(prompt_id)
- 
+
         retriever = RetrieverCreator.create_retriever(
             retriever_name,
             question=question,
@@ -322,6 +362,7 @@ def api_answer():
             chat_history=history,
             prompt=prompt,
             chunks=chunks,
+            token_limit=token_limit,
             gpt_model=gpt_model,
             user_api_key=user_api_key,
         )
@@ -370,7 +411,6 @@ def api_search():
     else:
         source = {}
         user_api_key = None
-   
 
     if (
         source["active_docs"].split("/")[0] == "default"
@@ -379,6 +419,10 @@ def api_search():
         retriever_name = "classic"
     else:
         retriever_name = source["active_docs"]
+    if "token_limit" in data:
+        token_limit = data["token_limit"]
+    else:
+        token_limit = settings.DEFAULT_MAX_HISTORY
 
     retriever = RetrieverCreator.create_retriever(
         retriever_name,
@@ -387,6 +431,7 @@ def api_search():
         chat_history=[],
         prompt="default",
         chunks=chunks,
+        token_limit=token_limit,
         gpt_model=gpt_model,
         user_api_key=user_api_key,
     )

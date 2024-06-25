@@ -38,6 +38,7 @@ export function fetchAnswerApi(
   conversationId: string | null,
   promptId: string | null,
   chunks: string,
+  token_limit: number,
 ): Promise<
   | {
       result: any;
@@ -73,6 +74,7 @@ export function fetchAnswerApi(
       conversation_id: conversationId,
       prompt_id: promptId,
       chunks: chunks,
+      token_limit: token_limit,
     }),
     signal,
   })
@@ -103,6 +105,7 @@ export function fetchAnswerSteaming(
   conversationId: string | null,
   promptId: string | null,
   chunks: string,
+  token_limit: number,
   onEvent: (event: MessageEvent) => void,
 ): Promise<Answer> {
   const docPath = getDocPath(selectedDocs);
@@ -119,6 +122,7 @@ export function fetchAnswerSteaming(
       conversation_id: conversationId,
       prompt_id: promptId,
       chunks: chunks,
+      token_limit: token_limit,
     };
     fetch(apiHost + '/stream', {
       method: 'POST',
@@ -181,6 +185,7 @@ export function searchEndpoint(
   conversation_id: string | null,
   history: Array<any> = [],
   chunks: string,
+  token_limit: number,
 ) {
   const docPath = getDocPath(selectedDocs);
 
@@ -190,6 +195,7 @@ export function searchEndpoint(
     conversation_id,
     history,
     chunks: chunks,
+    token_limit: token_limit,
   };
   return fetch(`${apiHost}/api/search`, {
     method: 'POST',

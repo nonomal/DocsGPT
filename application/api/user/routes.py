@@ -229,7 +229,7 @@ def upload_remote():
 def task_status():
     """Get celery job status."""
     task_id = request.args.get("task_id")
-    from application.celery import celery
+    from application.celery_init import celery
 
     task = celery.AsyncResult(task_id)
     task_meta = task.info
@@ -253,11 +253,12 @@ def combined_json():
             "docLink": "default",
             "model": settings.EMBEDDINGS_NAME,
             "location": "remote",
+            "tokens":""
         }
     ]
     # structure: name, language, version, description, fullName, date, docLink
-    # append data from vectors_collection
-    for index in vectors_collection.find({"user": user}):
+    # append data from vectors_collection in sorted order in descending order of date
+    for index in vectors_collection.find({"user": user}).sort("date", -1):
         data.append(
             {
                 "name": index["name"],
@@ -269,6 +270,7 @@ def combined_json():
                 "docLink": index["location"],
                 "model": settings.EMBEDDINGS_NAME,
                 "location": "local",
+                "tokens" : index["tokens"] if ("tokens" in index.keys()) else ""
             }
         )
     if settings.VECTOR_STORE == "faiss":
@@ -290,6 +292,7 @@ def combined_json():
                 "docLink": "duckduck_search",
                 "model": settings.EMBEDDINGS_NAME,
                 "location": "custom",
+                "tokens":""
             }
         )
     if "brave_search" in settings.RETRIEVERS_ENABLED:
@@ -304,6 +307,7 @@ def combined_json():
                 "docLink": "brave_search",
                 "model": settings.EMBEDDINGS_NAME,
                 "location": "custom",
+                "tokens":""
             }
         )
 
