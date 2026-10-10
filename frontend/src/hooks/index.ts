@@ -1,7 +1,9 @@
-import { useEffect, RefObject, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, RefObject } from 'react';
+
+import { resetBottomTint, resetTopTint } from '@/components/ui/bar-tint-reset';
 
 export function useOutsideAlerter<T extends HTMLElement>(
-  ref: RefObject<T>,
+  ref: RefObject<T | null>,
   handler: () => void,
   additionalDeps: unknown[],
   handleEscapeKey?: boolean,
@@ -30,26 +32,26 @@ export function useOutsideAlerter<T extends HTMLElement>(
         document.removeEventListener('keydown', handleEscape);
       }
     };
-  }, [ref, ...additionalDeps]);
+  }, [ref, handler, handleEscapeKey, ...additionalDeps]);
 }
 
+/**
+ * The app's one phone / desktop switch, matching Tailwind's ``lg`` (1024px):
+ * below it the shell is the phone layout, so JS and classes always agree.
+ */
 export function useMediaQuery() {
-  const mobileQuery = '(max-width: 768px)';
-  const darkModeQuery = '(prefers-color-scheme: dark)'; // Detect dark mode
-  const desktopQuery = '(min-width: 960px)';
+  const mobileQuery = '(max-width: 1023.98px)';
+  const desktopQuery = '(min-width: 1024px)';
   const [isMobile, setIsMobile] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     const mobileMedia = window.matchMedia(mobileQuery);
     const desktopMedia = window.matchMedia(desktopQuery);
-    const darkModeMedia = window.matchMedia(darkModeQuery);
 
     const updateMediaQueries = () => {
       setIsMobile(mobileMedia.matches);
       setIsDesktop(desktopMedia.matches);
-      setIsDarkMode(darkModeMedia.matches);
     };
 
     updateMediaQueries();
@@ -60,43 +62,188 @@ export function useMediaQuery() {
     return () => {
       window.removeEventListener('resize', listener);
     };
-  }, [mobileQuery, desktopQuery, darkModeQuery]);
+  }, [mobileQuery, desktopQuery]);
 
-  return { isMobile, isDesktop, isDarkMode };
+  return { isMobile, isDesktop };
 }
 
-export function useDarkTheme() {
-  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(
-    localStorage.getItem('selectedTheme') === 'Dark' || false,
+/**
+ * Reveals ``text`` gradually while ``enabled``, catching up faster the further
+ * the display falls behind (lag stays bounded at roughly half a second).
+ * When ``enabled`` is false the full text is returned immediately.
+ */
+export function usePacedText(text: string, enabled: boolean): string {
+  const textRef = useRef(text);
+  textRef.current = text;
+  const [visibleLength, setVisibleLength] = useState(() =>
+    enabled ? 0 : text.length,
   );
 
   useEffect(() => {
-    // Check if dark mode preference exists in local storage
-    const savedMode: string | null = localStorage.getItem('selectedTheme');
-
-    // Set dark mode based on local storage preference
-    if (savedMode === 'Dark') {
-      setIsDarkTheme(true);
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.add('dark:bg-raisin-black');
-    } else {
-      // If no preference found, set to default (light mode)
-      setIsDarkTheme(false);
-      document.documentElement.classList.remove('dark');
+    if (!enabled) {
+      setVisibleLength(textRef.current.length);
+      return;
     }
+    const id = window.setInterval(() => {
+      setVisibleLength((len) => {
+        const backlog = textRef.current.length - len;
+        if (backlog <= 0) return len;
+        return len + Math.max(2, Math.ceil(backlog * 0.08));
+      });
+    }, 50);
+    return () => window.clearInterval(id);
+  }, [enabled]);
+
+  return enabled ? text.slice(0, Math.min(visibleLength, text.length)) : text;
+}
+
+// Each useDarkTheme() caller holds its own state; a toggle broadcasts the new
+// value so every other caller (logo, Mermaid, code blocks) follows without a
+// reload.
+const THEME_CHANGE_EVENT = 'docsgpt:themechange';
+
+export function useDarkTheme() {
+  const getSystemThemePreference = () => {
+    return (
+      window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
+  };
+
+  const getInitialTheme = () => {
+    const storedTheme = localStorage.getItem('selectedTheme');
+    if (storedTheme === 'Dark' || storedTheme === 'Light') {
+      return storedTheme === 'Dark';
+    }
+    return getSystemThemePreference();
+  };
+
+  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(getInitialTheme());
+  const [componentMounted, setComponentMounted] = useState(false);
+  // The theme applied by this hook's last run; null before the first one.
+  const appliedTheme = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (localStorage.getItem('selectedTheme') === null) {
+        setIsDarkTheme(mediaQuery.matches);
+      }
+    };
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
   }, []);
+
+  useEffect(() => {
+    const handleThemeChange = (event: Event) => {
+      setIsDarkTheme((event as CustomEvent<boolean>).detail);
+    };
+    window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+    return () =>
+      window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('selectedTheme', isDarkTheme ? 'Dark' : 'Light');
-    if (isDarkTheme) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.add('dark:bg-raisin-black');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const action = isDarkTheme ? 'add' : 'remove';
+    document.body?.classList[action]('dark');
+    document.documentElement.classList[action]('dark');
+
+    // The browser toolbar matches the sidebar; read the token now that the
+    // `.dark` class above has flipped it.
+    const color =
+      getComputedStyle(document.body).getPropertyValue('--sidebar').trim() ||
+      (isDarkTheme ? '#161616' : '#fbfbfb');
+    document.head
+      .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+      .forEach((m) => {
+        m.removeAttribute('media');
+        m.setAttribute('content', color);
+      });
+    // Safari keeps both bars in the old theme's colour until a fixed element
+    // appears on their edge. Only on a change: on load they already match.
+    if (appliedTheme.current !== null && appliedTheme.current !== isDarkTheme) {
+      resetBottomTint();
+      resetTopTint();
     }
+    appliedTheme.current = isDarkTheme;
+
+    setComponentMounted(true);
   }, [isDarkTheme]);
-  //method to toggle theme
-  const toggleTheme: any = () => {
-    setIsDarkTheme(!isDarkTheme);
+
+  const toggleTheme = () => {
+    const next = !isDarkTheme;
+    setIsDarkTheme(next);
+    window.dispatchEvent(
+      new CustomEvent<boolean>(THEME_CHANGE_EVENT, { detail: next }),
+    );
   };
-  return [isDarkTheme, toggleTheme];
+
+  return [isDarkTheme, toggleTheme, componentMounted] as const;
+}
+
+export function useDebouncedValue<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+}
+
+export function useDebouncedCallback<A extends unknown[]>(
+  callback: (...args: A) => void,
+  delay = 300,
+): ((...args: A) => void) & { cancel: () => void } {
+  const callbackRef = useRef(callback);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  const cancel = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => cancel, [cancel]);
+
+  const debounced = useCallback(
+    (...args: A) => {
+      cancel();
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay, cancel],
+  );
+
+  return Object.assign(debounced, { cancel });
+}
+
+export function useLoaderState(
+  initialState = false,
+  delay = 250,
+): [boolean, (value: boolean) => void] {
+  const [state, setState] = useState<boolean>(initialState);
+
+  const setLoaderState = (value: boolean) => {
+    if (value) {
+      setState(true);
+    } else {
+      // Only add delay when changing from true to false
+      setTimeout(() => {
+        setState(false);
+      }, delay);
+    }
+  };
+
+  return [state, setLoaderState];
 }

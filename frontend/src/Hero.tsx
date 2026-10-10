@@ -1,54 +1,279 @@
-import DocsGPT3 from './assets/cute_docsgpt3.svg';
-const demos: { header: string; query: string }[] = [
-  {
-    header: 'Learn about DocsGPT',
-    query: 'What is DocsGPT?',
-  },
-  {
-    header: 'Summarise documentation',
-    query: 'Summarise current context',
-  },
-  {
-    header: 'Write Code',
-    query: 'Write code for api request to /api/answer',
-  },
-  {
-    header: 'Learning Assistance',
-    query: 'Write potential questions for context',
-  },
-];
+import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+
+import modelService from './api/services/modelService';
+import DocsGPTLogo from './assets/full-logo-b.svg';
+import DocsGPTLogoWhite from './assets/full-logo-w.svg';
+import { Button } from './components/ui/button';
+import { cn } from './lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './components/ui/select';
+import {
+  selectConnections,
+  selectConnectorCatalog,
+  selectConnectorsEnabled,
+  selectConnectorsLoaded,
+} from './connectors/connectorsSlice';
+import { catalogCards } from './connectors/catalogCards';
+import { connectorName } from './connectors/i18n';
+import type { ConnectorDefinition } from './connectors/types';
+import { useDarkTheme } from './hooks';
+import {
+  selectAvailableModels,
+  selectSelectedModel,
+  selectToken,
+  setAvailableModels,
+  setModelsLoading,
+  setSelectedModel,
+} from './preferences/preferenceSlice';
+import { intlLocale } from './utils/dateTimeUtils';
+
+import type { Model } from './models/types';
+
+function HeroModelSelect() {
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
+  const selectedModel = useSelector(selectSelectedModel);
+  const availableModels = useSelector(selectAvailableModels);
+  const token = useSelector(selectToken);
+  // Tracks which token the cached availableModels were loaded for.
+  // Without this, the early-return below pins the anonymous/built-in
+  // list forever once it's populated — login/logout never refetches
+  // and a user's BYOM models stay invisible.
+  const lastLoadedTokenRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const loadModels = async () => {
+      if (
+        (availableModels?.length ?? 0) > 0 &&
+        lastLoadedTokenRef.current === token
+      ) {
+        return;
+      }
+      dispatch(setModelsLoading(true));
+      try {
+        const response = await modelService.getModels(token);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+        const models = data.models || [];
+        const transformed = modelService.transformModels(models);
+
+        dispatch(setAvailableModels(transformed));
+        lastLoadedTokenRef.current = token;
+        if (!selectedModel && transformed.length > 0) {
+          const defaultModel =
+            transformed.find((m: Model) => m.id === data.default_model_id) ||
+            transformed[0];
+          dispatch(setSelectedModel(defaultModel));
+        } else if (selectedModel && transformed.length > 0) {
+          const isValid = transformed.find(
+            (m: Model) => m.id === selectedModel.id,
+          );
+          if (!isValid) {
+            const defaultModel =
+              transformed.find((m: Model) => m.id === data.default_model_id) ||
+              transformed[0];
+            dispatch(setSelectedModel(defaultModel));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load models:', error);
+      } finally {
+        dispatch(setModelsLoading(false));
+      }
+    };
+
+    loadModels();
+  }, [availableModels?.length, dispatch, selectedModel, token]);
+
+  const hasModels = availableModels && (availableModels?.length ?? 0) > 0;
+
+  return (
+    <Select
+      value={selectedModel?.id}
+      onValueChange={(value) => {
+        const model = availableModels?.find((m: Model) => m.id === value);
+        if (model) dispatch(setSelectedModel(model));
+      }}
+      disabled={!hasModels}
+    >
+      <SelectTrigger
+        /* eslint-disable-next-line shadcn/no-restyle --
+           The landing page's one focal control keeps its own look: a
+           borderless muted pill at 16px whose menu joins it (DESIGN.md,
+           Approved exceptions). */
+        className="bg-muted dark:bg-card text-foreground hover:bg-muted dark:hover:bg-card w-full justify-between rounded-4xl border-0 px-6 py-4 text-base shadow-none data-[state=open]:rounded-b-none md:text-base"
+        size="field"
+        /* Model names are product names, and a page translator rewrapping
+           this text as the model list loads breaks React's next commit. */
+        translate="no"
+      >
+        <SelectValue placeholder={t('conversation.selectModel')} />
+      </SelectTrigger>
+      <SelectContent
+        /* eslint-disable-next-line shadcn/no-restyle --
+           The hero picker's menu hangs from its trigger as one muted
+           shape (DESIGN.md, Approved exceptions). */
+        className="bg-muted dark:bg-card rounded-t-none rounded-b-4xl border-0 shadow-md data-[side=bottom]:translate-y-0"
+        translate="no"
+      >
+        {hasModels ? (
+          availableModels?.map((model: Model) => (
+            <SelectItem
+              key={model.id}
+              value={model.id}
+              /* eslint-disable-next-line shadcn/no-restyle -- hero menu rows match its 16px trigger */
+              className="px-5 py-3 text-base [&_[data-slot=select-item-indicator]]:right-5"
+            >
+              {model.display_name}
+            </SelectItem>
+          ))
+        ) : (
+          <div className="text-muted-foreground px-5 py-3 text-base">
+            {t('agents.form.modelsPopup.noOptionsMessage')}
+          </div>
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export default function Hero({
   handleQuestion,
 }: {
-  handleQuestion: (question: string) => void;
+  handleQuestion: ({
+    question,
+    isRetry,
+  }: {
+    question: string;
+    isRetry?: boolean;
+  }) => void;
 }) {
-  return (
-    <div
-      className={`mt-14 mb-4 flex w-full flex-col justify-end text-black-1000 dark:text-bright-gray sm:w-full lg:mt-6`}
-    >
-      <div className="flex h-full w-full flex-col items-center justify-center">
-        <div className="flex items-center">
-          <span className="p-0 text-4xl font-semibold">DocsGPT</span>
-          <img className="mb-1 inline w-14 p-0" src={DocsGPT3} alt="docsgpt" />
-        </div>
+  const { t, i18n } = useTranslation();
+  const [isDarkTheme] = useDarkTheme();
+  const navigate = useNavigate();
+  const demos = t('demo', { returnObjects: true }) as Array<{
+    header: string;
+    query: string;
+  }>;
+  // Nothing connected yet: the last card offers connecting a service, named
+  // after what this install can actually connect.
+  const connectorsEnabled = useSelector(selectConnectorsEnabled);
+  const connectorsLoaded = useSelector(selectConnectorsLoaded);
+  const connections = useSelector(selectConnections);
+  const catalog = useSelector(selectConnectorCatalog);
+  const connectable = catalog.filter(
+    (connector) => connector.available && connector.publisher !== 'custom',
+  );
+  const offerConnect =
+    connectorsEnabled &&
+    connectorsLoaded &&
+    connections.length === 0 &&
+    connectable.length > 0;
+  // Named after services whose data you chat with (files, docs, issues),
+  // not a web search or a bot that sends messages; one card per service.
+  const holdsData = (connector: ConnectorDefinition) =>
+    connector.category !== 'search' &&
+    (connector.capabilities ?? []).some((c) => c === 'sync' || c === 'read');
+  const dataServices = catalogCards(connectable).filter(holdsData);
+  const named = (dataServices.length > 0 ? dataServices : connectable).map(
+    (connector) => connectorName(t, connector),
+  );
+  const NAMED = 2;
+  const connectNames = new Intl.ListFormat(intlLocale(i18n.language), {
+    type: 'conjunction',
+  }).format(
+    named.length > NAMED
+      ? [...named.slice(0, NAMED), t('connectHero.more')]
+      : named,
+  );
+  const cards = (demos ?? []).filter((demo) => demo.header && demo.query);
+  const shown = offerConnect ? cards.slice(0, 3) : cards;
 
-        <div className="mb-4 flex flex-col items-center justify-center dark:text-white"></div>
+  return (
+    <div className="text-foreground flex h-full w-full flex-col items-center justify-between">
+      {/* Header Section */}
+      <div className="flex grow flex-col items-center justify-center pt-8 md:pt-0">
+        <div className="mb-4 flex items-center">
+          <img
+            className="h-7 w-auto"
+            src={isDarkTheme ? DocsGPTLogoWhite : DocsGPTLogo}
+            alt="DocsGPT"
+          />
+        </div>
+        {/* Model Selector */}
+        <div className="relative w-72">
+          <HeroModelSelect />
+        </div>
       </div>
-      <div className="grid w-full grid-cols-1 items-center gap-4 self-center text-xs sm:w-auto sm:gap-6 md:text-sm  lg:grid-cols-2">
-        {demos.map((demo) => (
-          <>
-            <button
-              onClick={() => handleQuestion(demo.query)}
-              className="w-full rounded-full border-2 border-silver px-6 py-4 text-left hover:border-gray-4000 dark:hover:border-gray-3000 xl:min-w-[24vw]"
+
+      {/* Demo Buttons Section */}
+      <div className="mb-3 w-full max-w-full md:mb-3">
+        <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-1 md:gap-4 lg:grid-cols-2">
+          {shown.map(
+            (demo: { header: string; query: string }, key: number) =>
+              demo.header &&
+              demo.query && (
+                <Button
+                  key={key}
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  shape="pill"
+                  onClick={() => handleQuestion({ question: demo.query })}
+                  className={cn(
+                    /* eslint-disable-next-line shadcn/no-restyle --
+                       The demo card is a two-line pill (title over a clamped
+                       query at 12px), so it undoes lg's one-line height, the
+                       base's row layout, weight and nowrap. */
+                    'h-auto w-full flex-col items-start gap-0 py-3.5 text-left text-xs font-normal whitespace-normal',
+                    key >= 2 && 'hidden md:flex',
+                  )}
+                >
+                  <p className="text-foreground mb-2 font-semibold">
+                    {demo.header}
+                  </p>
+                  <span className="text-muted-foreground line-clamp-2">
+                    {demo.query}
+                  </span>
+                </Button>
+              ),
+          )}
+          {offerConnect && (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              shape="pill"
+              onClick={() => navigate('/settings/connectors')}
+              data-testid="hero-connect-card"
+              className={cn(
+                /* eslint-disable-next-line shadcn/no-restyle --
+                   Same two-line pill as the demo cards above. */
+                'hidden h-auto w-full flex-col items-start gap-0 py-3.5 text-left text-xs font-normal whitespace-normal md:flex',
+              )}
             >
-              <p className="mb-1 font-semibold text-black dark:text-silver">
-                {demo.header}
+              <p className="text-foreground mb-2 font-semibold">
+                {t('connectHero.title')}
               </p>
-              <span className="text-gray-400">{demo.query}</span>
-            </button>
-          </>
-        ))}
+              <span className="text-muted-foreground line-clamp-2">
+                {t('connectHero.body', {
+                  names: connectNames,
+                  interpolation: { escapeValue: false },
+                })}
+              </span>
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

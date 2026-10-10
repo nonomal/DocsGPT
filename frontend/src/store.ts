@@ -1,48 +1,96 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { conversationSlice } from './conversation/conversationSlice';
+
+import agentPreviewReducer from './agents/agentPreviewSlice';
+import { backgroundListenerMiddleware } from './backgroundJobs/backgroundListener';
+import backgroundReducer from './backgroundJobs/backgroundSlice';
+import connectorsReducer from './connectors/connectorsSlice';
+import schedulesReducer from './agents/schedules/schedulesSlice';
+import workflowPreviewReducer from './agents/workflow/workflowPreviewSlice';
 import {
+  conversationListenerMiddleware,
+  conversationSlice,
+} from './conversation/conversationSlice';
+import { sharedConversationSlice } from './conversation/sharedConversationSlice';
+import actionToastReducer from './notifications/actionToastSlice';
+import notificationsReducer from './notifications/notificationsSlice';
+import { getStoredRecentDocs } from './preferences/preferenceApi';
+import {
+  Preference,
   prefListenerMiddleware,
   prefSlice,
 } from './preferences/preferenceSlice';
+import monitorsReducer from './monitors/monitorsSlice';
+import graphBuildReducer from './settings/graphBuildSlice';
+import teamsReducer from './teams/teamsSlice';
+import uploadReducer from './upload/uploadSlice';
 
 const key = localStorage.getItem('DocsGPTApiKey');
 const prompt = localStorage.getItem('DocsGPTPrompt');
-const doc = localStorage.getItem('DocsGPTRecentDocs');
 const chunks = localStorage.getItem('DocsGPTChunks');
+const selectedModel = localStorage.getItem('DocsGPTSelectedModel');
 
-const store = configureStore({
-  preloadedState: {
-    preference: {
-      apiKey: key ?? '',
-      chunks: JSON.parse(chunks ?? '2').toString(),
-      selectedDocs: doc !== null ? JSON.parse(doc) : null,
-      prompt:
-        prompt !== null
-          ? JSON.parse(prompt)
-          : { name: 'default', id: 'default', type: 'private' },
-      conversations: null,
-      sourceDocs: [
-        {
-          location: '',
-          language: '',
-          name: 'default',
-          version: '',
-          date: '',
-          description: '',
-          docLink: '',
-          fullName: '',
-          model: '1.0',
-        },
-      ],
-      modalState: 'INACTIVE',
+const preloadedState: { preference: Preference } = {
+  preference: {
+    apiKey: key ?? '',
+    token: localStorage.getItem('authToken') ?? null,
+    prompt:
+      prompt !== null
+        ? JSON.parse(prompt)
+        : { name: 'default', id: 'default', type: 'private' },
+    prompts: [
+      { name: 'default', id: 'default', type: 'public' },
+      { name: 'creative', id: 'creative', type: 'public' },
+      { name: 'strict', id: 'strict', type: 'public' },
+    ],
+    chunks: JSON.parse(chunks ?? '6').toString(),
+    selectedDocs: getStoredRecentDocs(),
+    conversations: {
+      data: null,
+      loading: false,
     },
+    sourceDocs: null,
+    modalState: 'INACTIVE',
+    paginatedDocuments: null,
+    templateAgents: null,
+    agents: null,
+    sharedAgents: null,
+    selectedAgent: null,
+    selectedModel: selectedModel ? JSON.parse(selectedModel) : null,
+    availableModels: [],
+    modelsLoading: false,
+    agentFolders: null,
+    roles: [],
+    rolesResolved: false,
+    ttsAvailable: true,
+    sttAvailable: true,
+    authRequired: false,
+    attachmentBudgetShare: null,
   },
+};
+const store = configureStore({
+  preloadedState: preloadedState,
   reducer: {
     preference: prefSlice.reducer,
     conversation: conversationSlice.reducer,
+    sharedConversation: sharedConversationSlice.reducer,
+    upload: uploadReducer,
+    agentPreview: agentPreviewReducer,
+    workflowPreview: workflowPreviewReducer,
+    notifications: notificationsReducer,
+    actionToast: actionToastReducer,
+    schedules: schedulesReducer,
+    teams: teamsReducer,
+    graphBuild: graphBuildReducer,
+    connectors: connectorsReducer,
+    monitors: monitorsReducer,
+    background: backgroundReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(prefListenerMiddleware.middleware),
+    getDefaultMiddleware().concat(
+      prefListenerMiddleware.middleware,
+      conversationListenerMiddleware.middleware,
+      backgroundListenerMiddleware.middleware,
+    ),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

@@ -1,116 +1,178 @@
 import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import Prompts from './Prompts';
+import { useTranslation } from 'react-i18next';
+import { useDispatch, useSelector } from 'react-redux';
+
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import { SectionHeader } from '../components/ui/section-header';
+import { SettingRow, SettingRows } from '../components/ui/setting-row';
+import PageToolbar from '../components/PageToolbar';
 import { useDarkTheme } from '../hooks';
-import Dropdown from '../components/Dropdown';
 import {
   selectPrompt,
-  setPrompt,
-  setChunks,
-  selectChunks,
+  selectPrompts,
   setModalStateDeleteConv,
+  setPrompt,
+  setPrompts,
 } from '../preferences/preferenceSlice';
+import Prompts from './Prompts';
 
-const apiHost = import.meta.env.VITE_API_HOST || 'https://docsapi.arc53.com';
+export default function General() {
+  const {
+    t,
+    i18n: { changeLanguage },
+  } = useTranslation();
+  const themes = [
+    { value: 'Light', label: t('settings.general.light') },
+    { value: 'Dark', label: t('settings.general.dark') },
+  ];
 
-const General: React.FC = () => {
-  const themes = ['Light', 'Dark'];
-  const languages = ['English'];
-  const chunks = ['0', '2', '4', '6', '8', '10'];
-  const [prompts, setPrompts] = React.useState<
-    { name: string; id: string; type: string }[]
-  >([]);
-  const selectedChunks = useSelector(selectChunks);
+  const languageOptions = [
+    { label: 'English', value: 'en' },
+    { label: 'Deutsch', value: 'de' },
+    { label: 'Español', value: 'es' },
+    { label: '日本語', value: 'jp' },
+    { label: '普通话', value: 'zh' },
+    { label: '繁體中文（臺灣）', value: 'zhTW' },
+    { label: 'Русский', value: 'ru' },
+  ];
+  const prompts = useSelector(selectPrompts);
   const [isDarkTheme, toggleTheme] = useDarkTheme();
   const [selectedTheme, setSelectedTheme] = React.useState(
     isDarkTheme ? 'Dark' : 'Light',
   );
   const dispatch = useDispatch();
-  const [selectedLanguage, setSelectedLanguage] = React.useState(languages[0]);
+  const themeId = React.useId();
+  const languageId = React.useId();
+  const locale = localStorage.getItem('docsgpt-locale');
+  // Fall back to English when the stored locale is not one we offer. Without
+  // the fallback `find` returns undefined, the effect below writes the string
+  // "undefined" into localStorage, and every subsequent load fails the same
+  // lookup — the picker renders blank and can never recover.
+  const [selectedLanguage, setSelectedLanguage] = React.useState(
+    languageOptions.find((option) => option.value === locale) ??
+      languageOptions[0],
+  );
   const selectedPrompt = useSelector(selectPrompt);
 
   React.useEffect(() => {
-    const fetchPrompts = async () => {
-      try {
-        const response = await fetch(`${apiHost}/api/get_prompts`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch prompts');
-        }
-        const promptsData = await response.json();
-        setPrompts(promptsData);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchPrompts();
-  }, []);
-
+    if (!selectedLanguage?.value) return;
+    localStorage.setItem('docsgpt-locale', selectedLanguage.value);
+    changeLanguage(selectedLanguage.value);
+  }, [selectedLanguage, changeLanguage]);
   return (
-    <div className="mt-[59px]">
-      <div className="mb-5">
-        <p className="font-bold text-jet dark:text-bright-gray">Select Theme</p>
-        <Dropdown
-          options={themes}
-          selectedValue={selectedTheme}
-          onSelect={(option: string) => {
-            setSelectedTheme(option);
-            option !== selectedTheme && toggleTheme();
-          }}
-          size="w-56"
-          rounded="3xl"
-          border="border"
-        />
-      </div>
-      <div className="mb-5">
-        <p className="font-bold text-jet dark:text-bright-gray">
-          Select Language
-        </p>
-        <Dropdown
-          options={languages}
-          selectedValue={selectedLanguage}
-          onSelect={setSelectedLanguage}
-          size="w-56"
-          rounded="3xl"
-          border="border"
-        />
-      </div>
-      <div className="mb-5">
-        <p className="font-bold text-jet dark:text-bright-gray">
-          Chunks processed per query
-        </p>
-        <Dropdown
-          options={chunks}
-          selectedValue={selectedChunks}
-          onSelect={(value: string) => dispatch(setChunks(value))}
-          size="w-56"
-          rounded="3xl"
-          border="border"
-        />
-      </div>
-      <div className="mb-5">
-        <Prompts
-          prompts={prompts}
-          selectedPrompt={selectedPrompt}
-          onSelectPrompt={(name, id, type) =>
-            dispatch(setPrompt({ name: name, id: id, type: type }))
-          }
-          setPrompts={setPrompts}
-          apiHost={apiHost}
-        />
-      </div>
-      <div className="w-56">
-        <p className="font-bold text-jet dark:text-bright-gray">
-          Delete all conversations
-        </p>
-        <button
-          className="mt-2 flex w-full cursor-pointer items-center justify-between rounded-3xl  border border-solid border-red-500 px-5 py-3 text-red-500 hover:bg-red-500 hover:text-white"
-          onClick={() => dispatch(setModalStateDeleteConv('ACTIVE'))}
+    <div>
+      <PageToolbar intro={t('settings.general.subtitle')} divider />
+      <div className="flex max-w-3xl flex-col gap-10">
+        <section className="flex flex-col gap-4">
+          <SectionHeader title={t('settings.general.sections.appearance')} />
+          <SettingRows>
+            <SettingRow
+              label={t('settings.general.theme')}
+              description={t('settings.general.themeDescription')}
+              htmlFor={themeId}
+              stack
+            >
+              <Select
+                value={selectedTheme}
+                onValueChange={(value) => {
+                  setSelectedTheme(value);
+                  if (value !== selectedTheme) toggleTheme();
+                }}
+              >
+                <SelectTrigger
+                  id={themeId}
+                  className="w-full sm:w-56"
+                  size="field"
+                  shape="pill"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {themes.map((theme) => (
+                    <SelectItem key={theme.value} value={theme.value}>
+                      {theme.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+            <SettingRow
+              label={t('settings.general.language')}
+              description={t('settings.general.languageDescription')}
+              htmlFor={languageId}
+              stack
+            >
+              <Select
+                value={selectedLanguage?.value}
+                onValueChange={(value) => {
+                  const opt = languageOptions.find((o) => o.value === value);
+                  if (opt) setSelectedLanguage(opt);
+                }}
+              >
+                <SelectTrigger
+                  id={languageId}
+                  className="w-full sm:w-56"
+                  size="field"
+                  shape="pill"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+          </SettingRows>
+        </section>
+        <section className="flex flex-col gap-4">
+          <SectionHeader title={t('settings.general.sections.chat')} />
+          <SettingRows>
+            <Prompts
+              prompts={prompts}
+              selectedPrompt={selectedPrompt}
+              description={t('settings.general.promptDescription')}
+              onSelectPrompt={(name, id, type) =>
+                dispatch(setPrompt({ name: name, id: id, type: type }))
+              }
+              setPrompts={(newPrompts) => dispatch(setPrompts(newPrompts))}
+            />
+          </SettingRows>
+        </section>
+        <Card
+          tone="destructive"
+          padding="lg"
+          className="flex-row flex-wrap items-center justify-between"
         >
-          <span className="overflow-hidden text-ellipsis ">Delete all</span>
-        </button>
+          <SectionHeader
+            tone="destructive"
+            title={t('settings.general.sections.dangerZone')}
+            description={t('settings.general.deleteAllDescription')}
+            className="min-w-0 flex-1"
+          />
+          <Button
+            type="button"
+            variant="destructive-outline"
+            size="field"
+            shape="pill"
+            className="shrink-0"
+            onClick={() => dispatch(setModalStateDeleteConv('ACTIVE'))}
+          >
+            {t('settings.general.deleteAllLabel')}
+          </Button>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default General;
+}

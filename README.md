@@ -1,200 +1,200 @@
 <h1 align="center">
-  DocsGPT  🦖
+  DocsGPT 🦖
 </h1>
 
 <p align="center">
-  <strong>Open-Source Documentation Assistant</strong>
+  <strong>Open-source AI agents grounded in your docs. Private, self-hosted, any model.</strong>
 </p>
 
-<p align="left">
-  <strong><a href="https://docsgpt.arc53.com/">DocsGPT</a></strong> is a cutting-edge open-source solution that streamlines the process of finding information in the project documentation. With its integration of the powerful <strong>GPT</strong> models, developers can easily ask questions about a project and receive accurate answers.
-  
-Say goodbye to time-consuming manual searches, and let <strong><a href="https://docsgpt.arc53.com/">DocsGPT</a></strong> help you quickly find the information you need. Try it out and see how it revolutionizes your project documentation experience. Contribute to its development and be a part of the future of AI-powered assistance.
+<p align="center">
+  <a href="https://github.com/arc53/DocsGPT"><img src="https://img.shields.io/github/stars/arc53/docsgpt?style=social" alt="GitHub stars"></a>
+  <a href="https://github.com/arc53/DocsGPT/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arc53/docsgpt" alt="MIT license"></a>
+  <a href="https://www.bestpractices.dev/projects/9907"><img src="https://www.bestpractices.dev/projects/9907/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://discord.gg/vN7YFfdMpj"><img src="https://img.shields.io/discord/1070046503302877216" alt="Discord"></a>
+  <a href="https://x.com/docsgptai"><img src="https://img.shields.io/twitter/follow/docsgptai" alt="Follow on X"></a>
 </p>
 
-<div align="center">
-  
-  <a href="https://github.com/arc53/DocsGPT">![link to main GitHub showing Stars number](https://img.shields.io/github/stars/arc53/docsgpt?style=social)</a>
-  <a href="https://github.com/arc53/DocsGPT">![link to main GitHub showing Forks number](https://img.shields.io/github/forks/arc53/docsgpt?style=social)</a>
-  <a href="https://github.com/arc53/DocsGPT/blob/main/LICENSE">![link to license file](https://img.shields.io/github/license/arc53/docsgpt)</a>
-  <a href="https://discord.gg/n5BX8dh8rU">![link to discord](https://img.shields.io/discord/1070046503302877216)</a>
-  <a href="https://twitter.com/docsgptai">![X (formerly Twitter) URL](https://img.shields.io/twitter/follow/docsgptai)</a>
+<p align="center">
+  <a href="https://docs.docsgpt.cloud/quickstart">⚡️ Quickstart</a> •
+  <a href="https://app.docsgpt.cloud/">☁️ Cloud</a> •
+  <a href="https://docs.docsgpt.cloud/">📖 Docs</a> •
+  <a href="https://discord.gg/vN7YFfdMpj">💬 Discord</a> •
+  <a href="https://blog.docsgpt.cloud/">🗞 Blog</a>
+</p>
 
- 
-</div>
+<!-- languages:start -->
+<p align="center">
+  <strong>English</strong> |
+  <a href=".github/readme/README.de.md">Deutsch</a> |
+  <a href=".github/readme/README.es.md">Español</a> |
+  <a href=".github/readme/README.ja.md">日本語</a> |
+  <a href=".github/readme/README.ru.md">Русский</a> |
+  <a href=".github/readme/README.zh-CN.md">简体中文</a> |
+  <a href=".github/readme/README.zh-TW.md">繁體中文</a>
+</p>
+<!-- languages:end -->
 
-### Production Support / Help for Companies:
+> [!TIP]
+> Self-host in one command. On macOS and Linux:
+> ```bash
+> curl -fsSL https://docs.ac/install | bash
+> ```
+> On Windows (PowerShell): `irm https://docs.ac/install.ps1 | iex`
 
-We're eager to provide personalized assistance when deploying your DocsGPT to a live environment.
+<p align="center">
+  <a href="https://docs.docsgpt.cloud/">
+    <img width="1100" height="688" src="https://pub.arc53.com/readme-reel.webp" alt="DocsGPT overview: answers with citations, knowledge, agents, visual workflows, tools and connectors, observability">
+  </a>
+</p>
 
-- [Book Demo :wave:](https://airtable.com/appdeaL0F1qV8Bl2C/shrrJF1Ll7btCJRbP)
-- [Send Email :email:](mailto:contact@arc53.com?subject=DocsGPT%20support%2Fsolutions)
+> 🎃 **Hacktoberfest 2026:** T-shirts for meaningful contributions, all October. See [HACKTOBERFEST.md](HACKTOBERFEST.md).
 
-![video-example-of-docs-gpt](https://d3dg1063dc54p9.cloudfront.net/videos/demov3.gif)
+<p align="center">
+  <sub>Supported by</sub><br>
+  <a href="https://get.neon.com/docsgpt"><img height="32" alt="Neon" src="https://github.com/user-attachments/assets/7d9813b7-0e6d-403f-b5af-68af066b326f" /></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://vercel.com/open-source-program"><img height="28" alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge-2026.svg" /></a>
+</p>
 
-## Roadmap
+## Why DocsGPT
 
-You can find our roadmap [here](https://github.com/orgs/arc53/projects/2). Please don't hesitate to contribute or create issues, it helps us improve DocsGPT!
+DocsGPT turns your documents, sites and connected apps into AI agents that answer with sources. Build agents and
+visual workflows, give them tools, and put them in your product through a widget, an OpenAI-compatible API or an
+MCP server. It runs entirely in your environment with the model of your choice, cloud or local, and everything,
+including SSO, teams and quotas, is MIT licensed.
 
-## Our Open-Source Models Optimized for DocsGPT:
+## Quickstart
 
-| Name                                                                  | Base Model  | Requirements (or similar) |
-| --------------------------------------------------------------------- | ----------- | ------------------------- |
-| [Docsgpt-7b-mistral](https://huggingface.co/Arc53/docsgpt-7b-mistral)   | Mistral-7b   | 1xA10G gpu                |
-| [Docsgpt-14b](https://huggingface.co/Arc53/docsgpt-14b)               | llama-2-14b | 2xA10 gpu's               |
-| [Docsgpt-40b-falcon](https://huggingface.co/Arc53/docsgpt-40b-falcon) | falcon-40b  | 8xA10G gpu's              |
+The installer above checks for [Docker](https://docs.docker.com/engine/install/), installs the `docsgpt` command and
+runs `docsgpt up`, which asks who should reach DocsGPT and which model to use. A local install opens at
+[http://localhost:7091](http://localhost:7091).
 
-If you don't have enough resources to run it, you can use bitsnbytes to quantize.
+Prefer Docker Compose, pip, Kubernetes or an air-gapped install? See [Choose a deployment](https://docs.docsgpt.cloud/Deploying).
+Just want to try it? Use [DocsGPT Cloud](https://app.docsgpt.cloud/).
 
 ## Features
 
-![Main features of DocsGPT showcasing six main features](https://user-images.githubusercontent.com/17906039/220427472-2644cff4-7666-46a5-819f-fc4a521f63c7.png)
+- 🤖 **Agents and deep research:** agents with their own prompt, knowledge, tools and model, plus a research mode for multi-step answers.
+- 🔀 **Visual workflows:** chain agents, conditions, state and sandboxed code in a drag-and-drop builder.
+- 📚 **Knowledge from anywhere:** PDFs, Office files, web pages, audio and more, kept in sync from Google Drive, SharePoint, Confluence, GitHub, S3 and others, with GraphRAG.
+- 🔎 **Answers with sources:** every answer cites the documents it came from.
+- 🛠️ **Tools and actions:** web search, any REST API, MCP servers, artifacts and code in a sandbox, and shell on paired devices.
+- 🧠 **Any model:** OpenAI, Anthropic, Google, Groq, OpenRouter, or local models through Ollama, vLLM and other OpenAI-compatible servers.
+- 🛡️ **Guardrails:** flag, redact or block PII, secrets, prompt injection and ungrounded answers.
+- ⏰ **Schedules and webhooks:** run agents on a timer or from any system that can send an HTTP request.
 
-## Useful Links
+https://github.com/user-attachments/assets/d36bbd7d-c23c-4ab8-8777-b432632d6882
 
-- :mag: :fire: [Cloud Version](https://docsgpt.arc53.com/)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://docs.docsgpt.cloud/Agents/basics"><img src="docs/public/create-agent-poster.png" alt="Creating an agent in DocsGPT with its knowledge, tools and prompt" width="100%"></a>
+      <p align="center"><b>Agents</b>: knowledge, tools and a prompt, published in a click</p>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://docs.docsgpt.cloud/Agents/nodes"><img src="docs/public/workflow-builder-poster.png" alt="The DocsGPT workflow builder with an AI agent node, a condition and two end nodes" width="100%"></a>
+      <p align="center"><b>Workflows</b>: agents and logic on one canvas</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://docs.docsgpt.cloud/Sources/Connectors"><img src="docs/public/connect-your-data-poster.png" alt="Connecting a GitHub repository to DocsGPT and choosing a daily sync" width="100%"></a>
+      <p align="center"><b>Knowledge</b>: connect a service and keep it in sync</p>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://docs.docsgpt.cloud/Extensions/chat-widget"><img src="docs/public/chat-widget-poster.png" alt="The DocsGPT chat widget on a product support page answering from the handbook" width="100%"></a>
+      <p align="center"><b>Widget</b>: your agent on any website</p>
+    </td>
+  </tr>
+</table>
 
-- :speech_balloon: :tada: [Join our Discord](https://discord.gg/n5BX8dh8rU)
+See the [documentation](https://docs.docsgpt.cloud/) for everything else.
 
-- :books: :sunglasses: [Guides](https://docs.docsgpt.cloud/)
+## Use it anywhere
 
-- :couple: [Interested in contributing?](https://github.com/arc53/DocsGPT/blob/main/CONTRIBUTING.md)
+- **Web app:** chat, agents, knowledge and settings in the browser.
+- **Chat and search widgets:** drop an agent into any site with a script tag or the [React package](https://docs.docsgpt.cloud/Extensions/chat-widget).
+- **OpenAI-compatible API:** point any OpenAI SDK at [`/v1`](https://docs.docsgpt.cloud/API/openai-compatible), or use the [Agent API](https://docs.docsgpt.cloud/API/agent-api) and [webhooks](https://docs.docsgpt.cloud/API/webhooks).
+- **MCP server:** let Claude, Cursor or any [MCP client](https://docs.docsgpt.cloud/API/mcp-server) search your agent's knowledge.
+- **Chat apps and the terminal:** bots for [Discord](https://github.com/arc53/discord-docsgpt-extension), [Slack](https://github.com/arc53/slack-bot-docsgpt-extenstion) and [Telegram](https://github.com/arc53/tg-bot-docsgpt-extenstion), and the [DocsGPT CLI](https://github.com/arc53/DocsGPT-cli). More in [community integrations](https://docs.docsgpt.cloud/Extensions/community).
 
-- :file_folder: :rocket: [How to use any other documentation](https://docs.docsgpt.cloud/Guides/How-to-train-on-other-documentation)
+## Private by design
 
-- :house: :closed_lock_with_key: [How to host it locally (so all data will stay on-premises)](https://docs.docsgpt.cloud/Guides/How-to-use-different-LLM)
+Everything runs inside your environment: the API, the worker, Postgres, Redis, your vector store and your files.
+Pick a cloud model provider or run models and embeddings locally, even [air-gapped](https://docs.docsgpt.cloud/Deploying/Air-Gapped).
 
-## Project Structure
-
-- Application - Flask app (main application).
-
-- Extensions - Chrome extension.
-
-- Scripts - Script that creates similarity search index for other libraries.
-
-- Frontend - Frontend uses <a href="https://vitejs.dev/">Vite</a> and <a href="https://react.dev/">React</a>.
-
-## QuickStart
-
-> [!Note]
-> Make sure you have [Docker](https://docs.docker.com/engine/install/) installed
-
-On Mac OS or Linux, write:
-
-`./setup.sh`
-
-It will install all the dependencies and allow you to download the local model, use OpenAI or use our LLM API.
-
-Otherwise, refer to this Guide for Windows:
-
-1. Download and open this repository with `git clone https://github.com/arc53/DocsGPT.git`
-2. Create a `.env` file in your root directory and set the env variables and `VITE_API_STREAMING` to true or false, depending on whether you want streaming answers or not.
-   It should look like this inside:
-
-   ```
-   LLM_NAME=[docsgpt or openai or others] 
-   VITE_API_STREAMING=true
-   API_KEY=[if LLM_NAME is openai]
-   ```
-
-   See optional environment variables in the [/.env-template](https://github.com/arc53/DocsGPT/blob/main/.env-template) and [/application/.env_sample](https://github.com/arc53/DocsGPT/blob/main/application/.env_sample) files.
-
-3. Run [./run-with-docker-compose.sh](https://github.com/arc53/DocsGPT/blob/main/run-with-docker-compose.sh).
-4. Navigate to http://localhost:5173/.
-
-To stop, just run `Ctrl + C`.
-
-## Development Environments
-
-### Spin up Mongo and Redis
-
-For development, only two containers are used from [docker-compose.yaml](https://github.com/arc53/DocsGPT/blob/main/docker-compose.yaml) (by deleting all services except for Redis and Mongo).
-See file [docker-compose-dev.yaml](./docker-compose-dev.yaml).
-
-Run
-
-```
-docker compose -f docker-compose-dev.yaml build
-docker compose -f docker-compose-dev.yaml up -d
+```mermaid
+flowchart LR
+    Users["Web app, widgets,<br/>API and MCP clients"] --> API
+    subgraph Yours["Your environment"]
+        API["DocsGPT API"] <--> Redis["Redis"]
+        Redis <--> Worker["Worker<br/>ingestion and embeddings"]
+        API --> Data[("Postgres, vector store<br/>and files")]
+        Worker --> Data
+        Local["Local models<br/>(optional)"]
+    end
+    API -.-> Local
+    API -.-> Cloud["Cloud model provider<br/>(optional)"]
 ```
 
-### Run the Backend
+Read the [architecture guide](https://docs.docsgpt.cloud/Concepts/Architecture) and the
+[security checklist](https://docs.docsgpt.cloud/Deploying/Security) before exposing DocsGPT beyond your machine.
 
-> [!Note]
-> Make sure you have Python 3.10 or 3.11 installed.
+## Self-host
 
-1. Export required environment variables or prepare a `.env` file in the project folder:
-   - Copy [.env_sample](https://github.com/arc53/DocsGPT/blob/main/application/.env_sample) and create `.env`.
+After the one-command install, the `docsgpt` command manages the stack:
 
-(check out [`application/core/settings.py`](application/core/settings.py) if you want to see more config options.)
-
-2. (optional) Create a Python virtual environment:
-   You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments.
-
-a) On Mac OS and Linux
-
-```commandline
-python -m venv venv
-. venv/bin/activate
+```bash
+docsgpt status     # version, address and health
+docsgpt logs       # follow the logs
+docsgpt upgrade    # upgrade and restart on the new version
+docsgpt backup     # back up the database and uploaded data
+docsgpt down       # stop (data and settings stay)
 ```
 
-b) On Windows
+See the [CLI reference](https://docs.docsgpt.cloud/Deploying/cli) for every command. Other ways to run it:
+[Docker Compose](https://docs.docsgpt.cloud/Deploying/Docker-Deploying),
+[pip](https://docs.docsgpt.cloud/Deploying/Pip-Install),
+[Kubernetes](https://docs.docsgpt.cloud/Deploying/Kubernetes-Deploying),
+[air-gapped](https://docs.docsgpt.cloud/Deploying/Air-Gapped), or
+[from a clone with the setup script](https://docs.docsgpt.cloud/Deploying/Docker-Deploying#using-the-source-checkout).
+To work on DocsGPT itself, see the [development environment guide](https://docs.docsgpt.cloud/Deploying/Development-Environment).
 
-```commandline
-python -m venv venv
- venv/Scripts/activate
-```
+## For teams
 
-3. Download embedding model and save it in the `model/` folder:
-You can use the script below, or download it manually from [here](https://d3dg1063dc54p9.cloudfront.net/models/embeddings/mpnet-base-v2.zip), unzip it and save it in the `model/` folder.
+- **Single sign-on:** [OIDC and SCIM](https://docs.docsgpt.cloud/Deploying/OIDC-SSO) provisioning.
+- **Access control:** [roles, teams and sharing](https://docs.docsgpt.cloud/Deploying/Access-Control) for agents, knowledge and tools, with an audit log.
+- **Usage quotas:** [token and spend limits](https://docs.docsgpt.cloud/Deploying/Usage-Quotas) per user and team.
+- **Insight:** analytics, logs and traces, plus [OpenTelemetry](https://docs.docsgpt.cloud/Deploying/Observability).
 
-```commandline
-wget https://d3dg1063dc54p9.cloudfront.net/models/embeddings/mpnet-base-v2.zip
-unzip mpnet-base-v2.zip -d model
-rm mpnet-base-v2.zip
-```
-
-4. Install dependencies for the backend:
-
-```commandline
-pip install -r application/requirements.txt
-```
-
-5. Run the app using `flask --app application/app.py run --host=0.0.0.0 --port=7091`.
-6. Start worker with `celery -A application.app.celery worker -l INFO`.
-
-### Start Frontend
-
-> [!Note]
-> Make sure you have Node version 16 or higher.
-
-1. Navigate to the [/frontend](https://github.com/arc53/DocsGPT/tree/main/frontend) folder.
-2. Install the required packages `husky` and `vite` (ignore if already installed).
-
-```commandline
-npm install husky -g
-npm install vite -g
-```
-
-3. Install dependencies by running `npm install --include=dev`.
-4. Run the app using `npm run dev`.
+Deploying DocsGPT for your company? [Get a demo](https://www.docsgpt.cloud/contact) or
+[email us](mailto:support@docsgpt.cloud?subject=DocsGPT%20support%2Fsolutions).
 
 ## Contributing
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for information about how to get involved. We welcome issues, questions, and pull requests.
+We welcome issues, questions and pull requests. Start with [CONTRIBUTING.md](CONTRIBUTING.md), browse the
+[roadmap](https://github.com/orgs/arc53/projects/2) and the [changelog](https://docs.docsgpt.cloud/changelog), and say hi on
+[Discord](https://discord.gg/vN7YFfdMpj). Please follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Code Of Conduct
+<details>
+<summary>Tech stack and project structure</summary>
 
-We as members, contributors, and leaders, pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation. Please refer to the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file for more information about contributing.
+- **Backend:** Python, Flask and flask-restx behind a Starlette ASGI app (uvicorn/gunicorn), Celery with RedBeat, Pydantic settings.
+- **Data:** PostgreSQL (SQLAlchemy, Alembic), Redis, and FAISS, pgvector, Elasticsearch, Qdrant, Milvus or MongoDB for vectors.
+- **Frontend:** React, Vite, Redux Toolkit, Tailwind CSS and React Flow.
+- **Docs:** Next.js with Nextra.
 
-## Many Thanks To Our Contributors⚡
+Project structure:
 
-<a href="https://github.com/arc53/DocsGPT/graphs/contributors" alt="View Contributors">
-  <img src="https://contrib.rocks/image?repo=arc53/DocsGPT" alt="Contributors" />
-</a>
+- `docsgpt/`: the backend and the `docsgpt` command (API, agents, tools, retrieval, parsers, worker).
+- `frontend/`: the web UI.
+- `extensions/`: the Chatwoot bridge and the React widget (published to npm as `docsgpt`).
+- `deployment/`: Docker Compose files, Kubernetes manifests, the installer scripts and the sandbox image.
+- `docs/`: the documentation site at [docs.docsgpt.cloud](https://docs.docsgpt.cloud).
+- `tests/` and `scripts/`: tests, and maintenance and migration scripts.
+
+</details>
 
 ## License
 
-The source code license is [MIT](https://opensource.org/license/mit/), as described in the [LICENSE](LICENSE) file.
-
-Built with [:bird: :link: LangChain](https://github.com/hwchase17/langchain)
+DocsGPT is [MIT licensed](LICENSE).

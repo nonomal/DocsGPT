@@ -1,68 +1,151 @@
-import Exit from '../assets/exit.svg';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Modal, ModalActions } from '../components/ui/modal';
 import { ActiveState } from '../models/misc';
 
-function ConfirmationModal({
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as PromiseLike<unknown>).then === 'function'
+  );
+}
+
+/**
+ * The yes/no dialog: a title, an optional line and body, Cancel and a
+ * submit. A sync `handleSubmit` closes it at once; one that returns a
+ * promise keeps it open with a pending submit until the promise settles,
+ * then closes on success or shows `error` in a destructive Alert. Closing
+ * the dialog drops a request still in flight: its late result never reaches
+ * the dialog when it is opened again.
+ */
+export default function ConfirmationModal({
   message,
+  description,
   modalState,
   setModalState,
   submitLabel,
   handleSubmit,
   cancelLabel,
   handleCancel,
+  variant = 'default',
+  error,
+  children,
 }: {
   message: string;
+  /** A muted line under the title that says what the action does. */
+  description?: string;
   modalState: ActiveState;
   setModalState: (state: ActiveState) => void;
   submitLabel: string;
-  handleSubmit: () => void;
+  /** Return the request's promise to show pending and keep a failure open. */
+  handleSubmit: () => void | Promise<unknown>;
   cancelLabel?: string;
   handleCancel?: () => void;
+  variant?: 'default' | 'destructive';
+  /**
+   * The Alert text when the submit's promise rejects, or a function of the
+   * rejection for a message that says why (e.g. the server's).
+   */
+  error?: string | ((reason: unknown) => string);
+  /** A body under the title and description (choices, a list). */
+  children?: ReactNode;
 }) {
+  const { t } = useTranslation();
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<{ reason: unknown } | null>(null);
+  // Bumped on every close; a submit settling under an older one is dropped.
+  const generation = useRef(0);
+
+  const reset = () => {
+    generation.current += 1;
+    setPending(false);
+    setFailure(null);
+  };
+
+  // The parent can close the dialog too (e.g. after its own success path).
+  useEffect(() => {
+    if (modalState === 'ACTIVE') return;
+    generation.current += 1;
+    setPending(false);
+    setFailure(null);
+  }, [modalState]);
+
+  const close = () => {
+    reset();
+    setModalState('INACTIVE');
+  };
+
+  const handleSubmitClick = () => {
+    if (pending) return;
+    const result = handleSubmit();
+    if (!isPromiseLike(result)) {
+      setModalState('INACTIVE');
+      return;
+    }
+    const issued = generation.current;
+    setPending(true);
+    setFailure(null);
+    Promise.resolve(result).then(
+      () => {
+        if (issued !== generation.current) return;
+        close();
+      },
+      (reason: unknown) => {
+        if (issued !== generation.current) return;
+        setPending(false);
+        setFailure({ reason });
+      },
+    );
+  };
+
+  const handleCancelClick = () => {
+    close();
+    handleCancel?.();
+  };
+
+  const failureText = !failure
+    ? null
+    : typeof error === 'function'
+      ? error(failure.reason)
+      : (error ?? t('common.actionFailed'));
+
+  const alert = failureText ? (
+    <Alert variant="destructive">
+      <AlertDescription>{failureText}</AlertDescription>
+    </Alert>
+  ) : null;
+
   return (
-    <article
-      className={`${
-        modalState === 'ACTIVE' ? 'visible' : 'hidden'
-      } fixed top-0 left-0 z-30  h-screen w-screen  bg-gray-alpha`}
+    <Modal
+      mobileVariant="dialog"
+      open={modalState === 'ACTIVE'}
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
+      title={message}
+      description={description}
+      footer={
+        <ModalActions
+          cancelLabel={cancelLabel ? cancelLabel : t('cancel')}
+          onCancel={handleCancelClick}
+          submitLabel={submitLabel}
+          onSubmit={handleSubmitClick}
+          pending={pending}
+          destructive={variant === 'destructive'}
+        />
+      }
     >
-      <article className="mx-auto mt-[35vh] flex w-[90vw] max-w-lg  flex-col gap-4 rounded-2xl bg-white shadow-lg dark:bg-outer-space">
-        <div className="relative">
-          <button
-            className="absolute top-3 right-4 m-2 w-3"
-            onClick={() => {
-              setModalState('INACTIVE');
-              handleCancel && handleCancel();
-            }}
-          >
-            <img className="filter dark:invert" src={Exit} />
-          </button>
-          <div className="p-8">
-            <p className="font-base mb-1 w-[90%] text-lg text-jet dark:text-bright-gray">
-              {message}
-            </p>
-            <div>
-              <div className="mt-6 flex flex-row-reverse gap-1">
-                <button
-                  onClick={handleSubmit}
-                  className="rounded-3xl bg-purple-30 px-5 py-2 text-sm text-white transition-all hover:bg-[#6F3FD1]"
-                >
-                  {submitLabel}
-                </button>
-                <button
-                  onClick={() => {
-                    setModalState('INACTIVE');
-                    handleCancel && handleCancel();
-                  }}
-                  className="cursor-pointer rounded-3xl px-5 py-2 text-sm font-medium hover:bg-gray-100 dark:bg-transparent dark:text-light-gray dark:hover:bg-[#767183]/50"
-                >
-                  {cancelLabel ? cancelLabel : 'Cancel'}
-                </button>
-              </div>
-            </div>
-          </div>
+      {alert && children ? (
+        <div className="flex flex-col gap-6">
+          {alert}
+          {children}
         </div>
-      </article>
-    </article>
+      ) : (
+        (alert ?? children ?? null)
+      )}
+    </Modal>
   );
 }
-
-export default ConfirmationModal;

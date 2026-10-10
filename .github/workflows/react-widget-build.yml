@@ -1,0 +1,39 @@
+name: React Widget Build
+
+on:
+  push:
+    paths:
+      - 'extensions/react-widget/**'
+  pull_request:
+    paths:
+      - 'extensions/react-widget/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extensions/react-widget
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: extensions/react-widget/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # The docs and README embed dist/legacy/browser.js from unpkg; fail if the
+      # build stops producing the bundle under that name.
+      - name: Check the documented CDN bundles exist
+        run: test -f dist/legacy/browser.js && test -f dist/modern/browser.js

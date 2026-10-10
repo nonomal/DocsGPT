@@ -1,92 +1,137 @@
 interface HistoryItem {
-    prompt: string;
-    response?: string;
-  }
+  prompt: string;
+  response?: string;
+}
+
 interface FetchAnswerStreamingProps {
-    question?: string;
-    apiKey?: string;
-    selectedDocs?: string;
-    history?: HistoryItem[];
-    conversationId?: string | null;
-    apiHost?: string;
-    onEvent?: (event: MessageEvent) => void;
-  }
+  question?: string;
+  apiKey?: string;
+  selectedDocs?: string;
+  history?: HistoryItem[];
+  conversationId?: string | null;
+  apiHost?: string;
+  /** Server-side ids of attachments to send with this question. */
+  attachments?: string[];
+  onEvent?: (event: MessageEvent) => void;
+  signal?: AbortSignal;
+}
+
+export interface FeedbackPayload {
+  question?: string;
+  answer?: string;
+  feedback: string | null;
+  apikey?: string;
+  conversation_id: string;
+  question_index: number;
+}
+
 export function fetchAnswerStreaming({
-    question = '',
-    apiKey = '',
-    selectedDocs = '',
-    history = [],
-    conversationId = null,
-    apiHost = '',
-    onEvent = () => {console.log("Event triggered, but no handler provided.");}
-  }: FetchAnswerStreamingProps): Promise<void> {
-    let docPath = 'default';
-    if (selectedDocs) {
-      docPath = selectedDocs;
-    }
-  
-    return new Promise<void>((resolve, reject) => {
-      const body = {
-        question: question,
-        api_key: apiKey,
-        embeddings_key: apiKey,
-        active_docs: docPath,
-        history: JSON.stringify(history),
-        conversation_id: conversationId,
-        model: 'default'
-      };
-  
-      fetch(apiHost + '/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
-        .then((response) => {
-          if (!response.body) throw Error('No response body');
-  
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder('utf-8');
-          let counterrr = 0;
-          const processStream = ({
-            done,
-            value,
-          }: ReadableStreamReadResult<Uint8Array>) => {
-            if (done) {
-              resolve();
-              return;
-            }
-  
-            counterrr += 1;
-  
-            const chunk = decoder.decode(value);
-  
-            const lines = chunk.split('\n');
-  
-            for (let line of lines) {
-              if (line.trim() == '') {
-                continue;
-              }
-              if (line.startsWith('data:')) {
-                line = line.substring(5);
-              }
-  
-              const messageEvent = new MessageEvent('message', {
-                data: line,
-              });
-  
-              onEvent(messageEvent); // handle each message
-            }
-  
-            reader.read().then(processStream).catch(reject);
-          };
-  
-          reader.read().then(processStream).catch(reject);
-        })
-        .catch((error) => {
-          console.error('Connection failed:', error);
+  question = '',
+  apiKey = '',
+  history = [],
+  conversationId = null,
+  apiHost = '',
+  attachments = [],
+  onEvent = () => {
+    console.log('Event triggered, but no handler provided.');
+  },
+  signal,
+}: FetchAnswerStreamingProps): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const body: Record<string, unknown> = {
+      question: question,
+      history: JSON.stringify(
+        history
+          .filter((item) => item.prompt && item.response)
+          .map(({ prompt, response }) => ({ prompt, response })),
+      ),
+      conversation_id: conversationId,
+      api_key: apiKey,
+    };
+    if (attachments.length > 0) body.attachments = attachments;
+    fetch(apiHost + '/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal,
+    })
+      .then((response) => {
+        if (!response.body) throw Error('No response body');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        let buffer = '';
+
+        const emit = (rawLine: string) => {
+          const line = rawLine.trim();
+          if (line === '') return;
+          if (!line.startsWith('data:')) return;
+
+          const payload = line.substring(5).trim();
+          if (payload === '' || payload === '[DONE]') return;
+
+          onEvent(new MessageEvent('message', { data: payload }));
+        };
+
+        const processStream = ({
+          done,
+          value,
+        }: ReadableStreamReadResult<Uint8Array>) => {
+          if (done) {
+            if (buffer.trim() !== '') emit(buffer);
+            buffer = '';
+            resolve();
+            return;
+          }
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) emit(line);
+
+          reader.read().then(processStream).catch(onReadError);
+        };
+
+        const onReadError = (error: unknown) => {
+          if (signal?.aborted || (error as Error)?.name === 'AbortError') {
+            resolve();
+            return;
+          }
           reject(error);
-        });
-    });
-  }
+        };
+
+        reader.read().then(processStream).catch(onReadError);
+      })
+      .catch((error) => {
+        if (signal?.aborted || (error as Error)?.name === 'AbortError') {
+          resolve();
+          return;
+        }
+        console.warn('Connection failed:', error);
+        reject(error);
+      });
+  });
+}
+
+export const sendFeedback = (
+  payload: FeedbackPayload,
+  apiHost: string,
+): Promise<Response> => {
+  return fetch(`${apiHost}/api/feedback`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      question: payload.question,
+      answer: payload.answer,
+      feedback: payload.feedback,
+      api_key: payload.apikey,
+      conversation_id: payload.conversation_id,
+      question_index: payload.question_index,
+    }),
+  });
+};
